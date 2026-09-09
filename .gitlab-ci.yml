@@ -1,0 +1,70 @@
+stages:
+  - build
+  - deploy
+
+.build_template: &build_template
+  stage: build
+  image: node:24.16.0
+  tags:
+    - docker-vps
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+  script:
+    - npm ci --registry=https://package-mirror.liara.ir/repository/npm/
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+
+build:main:
+  <<: *build_template
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+build:development:
+  <<: *build_template
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "development"'
+
+deploy:main:
+  stage: deploy
+  image: deploy-ssh:latest
+  tags:
+    - docker-vps
+  needs:
+    - build:main
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+  script:
+    - ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "bash /home/deploy/apps/prod/backend/irco_backend/deploy.sh $CI_COMMIT_SHA $CI_COMMIT_SHORT_SHA"
+  environment:
+    name: production
+
+deploy:development:
+  stage: deploy
+  image: deploy-ssh:latest
+  tags:
+    - docker-vps
+  needs:
+    - build:development
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "development"'
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+  script:
+    - ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "bash /home/deploy/apps/staging/backend/irco_backend/deploy.sh $CI_COMMIT_SHA $CI_COMMIT_SHORT_SHA"
+  environment:
+    name: development

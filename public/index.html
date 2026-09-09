@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>آپلود CSV</title>
+        <style>
+            :root {
+                --bg: #0f1419;
+                --surface: #1a2332;
+                --border: #2d3a4f;
+                --text: #e7ecf3;
+                --muted: #8b9cb3;
+                --accent: #3b82f6;
+                --accent-hover: #2563eb;
+                --success: #22c55e;
+                --error: #ef4444;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family: "Segoe UI", Tahoma, sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                min-height: 100vh;
+                line-height: 1.6;
+            }
+
+            .container {
+                max-width: 960px;
+                margin: 0 auto;
+                padding: 2rem 1.25rem 4rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 0.25rem;
+            }
+            .subtitle {
+                color: var(--muted);
+                margin-bottom: 2rem;
+                font-size: 0.95rem;
+            }
+
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .upload-zone {
+                border: 2px dashed var(--border);
+                border-radius: 10px;
+                padding: 2rem;
+                text-align: center;
+                transition: border-color 0.2s;
+            }
+
+            .upload-zone.dragover {
+                border-color: var(--accent);
+            }
+
+            input[type="file"] {
+                display: none;
+            }
+
+            .file-label {
+                display: inline-block;
+                padding: 0.6rem 1.2rem;
+                background: var(--accent);
+                color: #fff;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 0.9rem;
+            }
+
+            .file-label:hover {
+                background: var(--accent-hover);
+            }
+
+            .file-name {
+                margin-top: 0.75rem;
+                color: var(--muted);
+                font-size: 0.85rem;
+            }
+
+            .actions {
+                display: flex;
+                gap: 0.75rem;
+                margin-top: 1.25rem;
+                flex-wrap: wrap;
+            }
+
+            button {
+                padding: 0.6rem 1.2rem;
+                border: none;
+                border-radius: 8px;
+                font-size: 0.9rem;
+                cursor: pointer;
+                font-family: inherit;
+            }
+
+            .btn-primary {
+                background: var(--accent);
+                color: #fff;
+            }
+            .btn-primary:hover:not(:disabled) {
+                background: var(--accent-hover);
+            }
+            .btn-primary:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .btn-secondary {
+                background: transparent;
+                color: var(--text);
+                border: 1px solid var(--border);
+            }
+
+            .status {
+                margin-top: 1rem;
+                padding: 0.75rem 1rem;
+                border-radius: 8px;
+                font-size: 0.9rem;
+                display: none;
+            }
+
+            .status.show {
+                display: block;
+            }
+            .status.success {
+                background: rgba(34, 197, 94, 0.15);
+                color: var(--success);
+            }
+            .status.error {
+                background: rgba(239, 68, 68, 0.15);
+                color: var(--error);
+            }
+
+            .log-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+            }
+
+            .log-header h2 {
+                font-size: 1.1rem;
+            }
+
+            .log-entry {
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                margin-bottom: 1rem;
+                overflow: hidden;
+            }
+
+            .log-meta {
+                padding: 0.85rem 1rem;
+                background: rgba(0, 0, 0, 0.2);
+                font-size: 0.85rem;
+                color: var(--muted);
+            }
+
+            .log-meta strong {
+                color: var(--text);
+            }
+
+            .table-wrap {
+                overflow-x: auto;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.85rem;
+            }
+
+            th,
+            td {
+                padding: 0.6rem 0.75rem;
+                text-align: right;
+                border-bottom: 1px solid var(--border);
+            }
+
+            th {
+                background: rgba(59, 130, 246, 0.1);
+                color: var(--text);
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .empty {
+                text-align: center;
+                color: var(--muted);
+                padding: 2rem;
+                font-size: 0.9rem;
+            }
+
+            .console-log {
+                background: #0a0e14;
+                border-top: 1px solid var(--border);
+                padding: 0.75rem 1rem;
+                font-family: "Cascadia Code", Consolas, monospace;
+                font-size: 0.78rem;
+                color: #94a3b8;
+                max-height: 180px;
+                overflow-y: auto;
+                white-space: pre-wrap;
+                direction: ltr;
+                text-align: left;
+            }
+
+            .login-form {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+                max-width: 360px;
+            }
+
+            .form-field {
+                display: flex;
+                flex-direction: column;
+                gap: 0.35rem;
+            }
+
+            .form-field label {
+                font-size: 0.85rem;
+                color: var(--muted);
+            }
+
+            .form-field input {
+                padding: 0.65rem 0.85rem;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: var(--bg);
+                color: var(--text);
+                font-family: inherit;
+                font-size: 0.95rem;
+            }
+
+            .form-field input:focus {
+                outline: none;
+                border-color: var(--accent);
+            }
+
+            .hidden {
+                display: none !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>آپلود فایل CSV</h1>
+            <p class="subtitle">برای آپلود فایل، ابتدا وارد شوید.</p>
+
+            <div class="card" id="loginCard">
+                <h2 style="font-size: 1.1rem; margin-bottom: 0.5rem">ورود کارمند</h2>
+                <form class="login-form" id="loginForm">
+                    <div class="form-field">
+                        <label for="username">شماره موبایل</label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            autocomplete="username"
+                            required
+                        />
+                    </div>
+                    <div class="form-field">
+                        <label for="password">رمز عبور</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            autocomplete="current-password"
+                            required
+                        />
+                    </div>
+                    <button class="btn-primary" type="submit" id="loginBtn">ورود</button>
+                </form>
+                <div class="status" id="loginStatus"></div>
+            </div>
+
+            <div id="uploadSection" class="hidden">
+                <p class="subtitle">
+                    یک یا چند فایل CSV را آپلود کنید — داده‌ها در سرور لاگ می‌شوند و در این صفحه
+                    نمایش داده می‌شوند.
+                </p>
+
+                <div class="card">
+                    <div class="upload-zone" id="dropZone">
+                        <label class="file-label" for="csvFile">انتخاب فایل‌های CSV</label>
+                        <input type="file" id="csvFile" accept=".csv,text/csv" multiple />
+                        <p class="file-name" id="fileName">فایلی انتخاب نشده</p>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-primary" id="uploadBtn" disabled>آپلود و لاگ</button>
+                        <button class="btn-secondary" id="refreshBtn" type="button">
+                            بروزرسانی لاگ‌ها
+                        </button>
+                    </div>
+                    <div class="status" id="status"></div>
+                </div>
+
+                <div class="card">
+                    <div class="log-header">
+                        <h2>لاگ آپلودها</h2>
+                    </div>
+                    <div id="logsContainer">
+                        <p class="empty">هنوز فایلی آپلود نشده است.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const API = "/api/v1";
+            const fileInput = document.getElementById("csvFile");
+            const fileName = document.getElementById("fileName");
+            const uploadBtn = document.getElementById("uploadBtn");
+            const refreshBtn = document.getElementById("refreshBtn");
+            const statusEl = document.getElementById("status");
+            const logsContainer = document.getElementById("logsContainer");
+            const dropZone = document.getElementById("dropZone");
+            const loginCard = document.getElementById("loginCard");
+            const uploadSection = document.getElementById("uploadSection");
+            const loginForm = document.getElementById("loginForm");
+            const loginStatus = document.getElementById("loginStatus");
+            const loginBtn = document.getElementById("loginBtn");
+
+            let selectedFiles = [];
+
+            const fetchOptions = (options = {}) => ({
+                credentials: "include",
+                ...options,
+            });
+
+            const parseJson = async (res) => {
+                const contentType = res.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                    throw new Error("پاسخ سرور نامعتبر است — لطفاً از همان آدرس سرور (مثلاً localhost:3000) استفاده کنید");
+                }
+                return res.json();
+            };
+
+            const showLoginStatus = (message, type) => {
+                loginStatus.textContent = message;
+                loginStatus.className = `status show ${type}`;
+            };
+
+            const hideLoginStatus = () => {
+                loginStatus.className = "status";
+            };
+
+            const showUploadSection = () => {
+                loginCard.classList.add("hidden");
+                uploadSection.classList.remove("hidden");
+            };
+
+            const showLoginSection = () => {
+                loginCard.classList.remove("hidden");
+                uploadSection.classList.add("hidden");
+            };
+
+            const verifySession = async () => {
+                try {
+                    const res = await fetch(
+                        `${API}/admin/profile`,
+                        fetchOptions(),
+                    );
+                    return res.ok;
+                } catch {
+                    return false;
+                }
+            };
+
+            const initAuth = async () => {
+                const valid = await verifySession();
+                if (valid) {
+                    showUploadSection();
+                    await fetchLogs();
+                } else {
+                    showLoginSection();
+                }
+            };
+
+            loginForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                hideLoginStatus();
+                loginBtn.disabled = true;
+
+                const mobile = document.getElementById("username").value.trim();
+                const password = document.getElementById("password").value;
+
+                try {
+                    const res = await fetch(
+                        `${API}/auth/employee`,
+                        fetchOptions({
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ mobile, password }),
+                        }),
+                    );
+                    const json = await parseJson(res);
+
+                    if (!res.ok) throw new Error(json.message || "ورود ناموفق");
+
+                    showUploadSection();
+                    await fetchLogs();
+                } catch (err) {
+                    showLoginStatus(err.message, "error");
+                } finally {
+                    loginBtn.disabled = false;
+                }
+            });
+
+            const updateFileLabel = () => {
+                if (!selectedFiles.length) {
+                    fileName.textContent = "فایلی انتخاب نشده";
+                    uploadBtn.disabled = true;
+                    return;
+                }
+                fileName.textContent =
+                    selectedFiles.length === 1
+                        ? selectedFiles[0].name
+                        : `${selectedFiles.length} فایل انتخاب شده`;
+                uploadBtn.disabled = false;
+            };
+
+            const setSelectedFiles = (files) => {
+                selectedFiles = [...files].filter((f) => f.name.toLowerCase().endsWith(".csv"));
+                if (files.length && !selectedFiles.length) {
+                    showStatus("فقط فایل CSV مجاز است", "error");
+                }
+                updateFileLabel();
+            };
+
+            const showStatus = (message, type) => {
+                statusEl.textContent = message;
+                statusEl.className = `status show ${type}`;
+            };
+
+            const hideStatus = () => {
+                statusEl.className = "status";
+            };
+
+            fileInput.addEventListener("change", () => {
+                setSelectedFiles(fileInput.files);
+            });
+
+            dropZone.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                dropZone.classList.add("dragover");
+            });
+
+            dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+
+            dropZone.addEventListener("drop", (e) => {
+                e.preventDefault();
+                dropZone.classList.remove("dragover");
+                setSelectedFiles(e.dataTransfer.files);
+            });
+
+            const renderLogs = (logs) => {
+                if (!logs.length) {
+                    logsContainer.innerHTML = '<p class="empty">هنوز فایلی آپلود نشده است.</p>';
+                    return;
+                }
+
+                logsContainer.innerHTML = logs
+                    .map((log) => {
+                        const headerCells = log.headers
+                            .map((h) => `<th>${escapeHtml(h)}</th>`)
+                            .join("");
+                        const previewRows = log.sampleRows || [];
+                        const bodyRows = previewRows
+                            .map(
+                                (row) =>
+                                    `<tr>${log.headers.map((h) => `<td>${escapeHtml(row[h] ?? "")}</td>`).join("")}</tr>`,
+                            )
+                            .join("");
+
+                        const consoleLines = previewRows
+                            .map((row, i) => `Row ${i + 1}: ${JSON.stringify(row)}`)
+                            .join("\n");
+
+                        return `
+                        <div class="log-entry">
+                            <div class="log-meta">
+                                <strong>${escapeHtml(log.filename)}</strong>
+                                — ${log.rowCount} ردیف
+                                — ${log.insertedCount ?? log.rowCount} ذخیره در identifiers
+                                ${log.skippedCount ? ` — ${log.skippedCount} رد شده` : ""}
+                                — ${new Date(log.uploadedAt).toLocaleString("fa-IR")}
+                            </div>
+                            ${log.rowCount > previewRows.length ? `<p class="file-name" style="padding:0.5rem 1rem;margin:0">نمایش ${previewRows.length} ردیف اول از ${log.rowCount.toLocaleString("fa-IR")} ردیف</p>` : ""}
+                            <div class="table-wrap">
+                                <table>
+                                    <thead><tr>${headerCells}</tr></thead>
+                                    <tbody>${bodyRows || '<tr><td colspan="99" class="empty">بدون داده</td></tr>'}</tbody>
+                                </table>
+                            </div>
+                            <div class="console-log">${escapeHtml(consoleLines || "(خالی)")}</div>
+                        </div>
+                    `;
+                    })
+                    .join("");
+            };
+
+            const escapeHtml = (str) => {
+                const div = document.createElement("div");
+                div.textContent = str;
+                return div.innerHTML;
+            };
+
+            const fetchLogs = async () => {
+                try {
+                    const res = await fetch(`${API}/codes/logs`, fetchOptions());
+                    const json = await parseJson(res);
+                    if (res.status === 401) {
+                        showLoginSection();
+                        showLoginStatus("نشست منقضی شده — دوباره وارد شوید", "error");
+                        return;
+                    }
+                    if (!res.ok) throw new Error(json.message || "خطا در دریافت لاگ‌ها");
+                    renderLogs(json.data || []);
+                } catch (err) {
+                    showStatus(err.message, "error");
+                }
+            };
+
+            uploadBtn.addEventListener("click", async () => {
+                if (!selectedFiles.length) return;
+
+                const formData = new FormData();
+                selectedFiles.forEach((file) => formData.append("files", file));
+
+                uploadBtn.disabled = true;
+                hideStatus();
+
+                try {
+                    const res = await fetch(
+                        `${API}/codes/upload`,
+                        fetchOptions({
+                            method: "POST",
+                            body: formData,
+                        }),
+                    );
+                    const json = await parseJson(res);
+
+                    if (res.status === 401) {
+                        showLoginSection();
+                        showLoginStatus("نشست منقضی شده — دوباره وارد شوید", "error");
+                        return;
+                    }
+                    if (!res.ok) throw new Error(json.message || "آپلود ناموفق");
+
+                    showStatus(
+                        `آپلود شد: ${json.data.count} فایل، ${json.data.totalInserted} ردیف در identifiers ذخیره شد` +
+                            (json.data.totalSkipped
+                                ? ` (${json.data.totalSkipped} ردیف رد شد)`
+                                : ""),
+                        "success",
+                    );
+                    selectedFiles = [];
+                    fileInput.value = "";
+                    updateFileLabel();
+                    await fetchLogs();
+                } catch (err) {
+                    showStatus(err.message, "error");
+                } finally {
+                    uploadBtn.disabled = false;
+                    updateFileLabel();
+                }
+            });
+
+            refreshBtn.addEventListener("click", fetchLogs);
+            initAuth();
+        </script>
+    </body>
+</html>

@@ -1,0 +1,45 @@
+name: Deploy dev.ico.ir
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+          script: |
+            set -e
+
+            cd /home/devicoir/domains/dev.ico.ir/public_html
+
+            echo "Fetching latest code..."
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "Installing dependencies..."
+            npm i
+
+            echo "Building application..."
+            npm run build
+
+            echo "Restarting PM2..."
+            if pm2 describe dev-ico > /dev/null 2>&1; then
+              pm2 restart dev-ico --update-env
+            else
+              pm2 start npm --name dev-ico -- start
+            fi
+
+            pm2 save
+
+            echo "Deploy completed successfully."
