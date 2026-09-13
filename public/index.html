@@ -325,7 +325,7 @@
         </div>
 
         <script>
-            const API = "/api/v1";
+            const API = "https://dev.ico.ir/api/v1";
             const fileInput = document.getElementById("csvFile");
             const fileName = document.getElementById("fileName");
             const uploadBtn = document.getElementById("uploadBtn");
@@ -349,7 +349,7 @@
             const parseJson = async (res) => {
                 const contentType = res.headers.get("content-type") || "";
                 if (!contentType.includes("application/json")) {
-                    throw new Error("پاسخ سرور نامعتبر است — لطفاً از همان آدرس سرور (مثلاً localhost:3000) استفاده کنید");
+                    throw new Error("پاسخ سرور نامعتبر است — لطفاً از https://dev.ico.ir استفاده کنید");
                 }
                 return res.json();
             };
