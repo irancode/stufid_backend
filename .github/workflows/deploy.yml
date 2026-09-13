@@ -1,0 +1,48 @@
+name: Deploy STUFID Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+
+            APP_DIR="/home/devstufidir/domains/dev.stufid.ir/app"
+
+            cd "$APP_DIR"
+
+            echo "==> Fetch latest code"
+            git fetch origin
+
+            echo "==> Reset to main"
+            git reset --hard origin/main
+
+            echo "==> Install dependencies"
+            npm ci
+
+            echo "==> Build"
+            npm run build
+
+            echo "==> Restart PM2"
+            pm2 restart stufid-backend-dev --update-env
+
+            echo "==> Save PM2"
+            pm2 save
+
+            echo "==> Check process"
+            pm2 status
+
+            echo "==> Deploy finished"

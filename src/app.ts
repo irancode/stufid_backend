@@ -34,7 +34,7 @@ app.use((req, res, next) => {
 });
 
 app.get("/health", (req, res) => {
-    res.send("Hello World!!");
+    res.send("Hello World from STUFID Backend!!");
 });
 app.use("/api/v1", routes);
 
